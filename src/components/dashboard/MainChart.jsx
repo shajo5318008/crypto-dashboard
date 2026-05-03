@@ -37,9 +37,6 @@ const AnyChartCandlestick = ({ data }) => {
     // Update data without destroying chart
     chartRef.current.data(candleData);
 
-    return () => {
-      // We don't dispose on every data change, only on unmount
-    };
   }, [data]);
 
   // Clean up exactly once on unmount
@@ -47,6 +44,7 @@ const AnyChartCandlestick = ({ data }) => {
     return () => {
       if (chartRef.current) {
         chartRef.current.dispose();
+        chartRef.current = null; // CRITICAL: Fix for React StrictMode double-mounting
       }
     };
   }, []);
@@ -78,34 +76,29 @@ const MainChart = ({ selectedAsset }) => {
     setData(prevData => {
       if (prevData.length === 0) return prevData;
 
-      // We only append if the price actually changed to avoid unnecessary renders
+      // We only update if the price actually changed to avoid unnecessary renders
       const currentPrice = selectedAsset.price;
-      const lastPoint = prevData[prevData.length - 1];
+      const lastIndex = prevData.length - 1;
+      const lastPoint = prevData[lastIndex];
       
       if (lastPoint.value === currentPrice) return prevData;
 
       const newData = [...prevData];
       
-      // Create a new "live" data point
-      const now = new Date();
-      const timeStr = timeframe === '1D' 
-        ? now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-        : now.toISOString().split('T')[0];
-
-      // Shift data (remove oldest, add newest)
-      newData.shift();
-      newData.push({
-        time: timeStr,
+      // Update the current (last) bar's data instead of adding a new one.
+      // This is the correct logic for higher timeframes (weekly/monthly) 
+      // where the "current" bar is still forming and only its close changes.
+      newData[lastIndex] = {
+        ...lastPoint,
         value: currentPrice,
-        open: lastPoint.close,
-        high: Math.max(lastPoint.close, currentPrice) + (currentPrice * 0.001),
-        low: Math.min(lastPoint.close, currentPrice) - (currentPrice * 0.001),
-        close: currentPrice
-      });
+        close: currentPrice,
+        high: Math.max(lastPoint.high, currentPrice),
+        low: Math.min(lastPoint.low, currentPrice)
+      };
 
       return newData;
     });
-  }, [selectedAsset?.price, timeframe]);
+  }, [selectedAsset?.price]);
 
   if (!selectedAsset) return null;
 
