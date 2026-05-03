@@ -20,41 +20,51 @@ export const PORTFOLIO_DATA = {
   ]
 };
 
-// Generate historical mock data for charts
-const generateChartData = (points = 100, startPrice = 60000, volatility = 500) => {
+// Generate historical mock data backwards from current price to ensure consistency
+const generateChartData = (points, timeframe, currentPrice, volatility) => {
   let data = [];
-  let currentPrice = startPrice;
+  let price = currentPrice;
   let date = new Date();
-  date.setDate(date.getDate() - points);
 
   for (let i = 0; i < points; i++) {
-    const change = (Math.random() - 0.5) * volatility;
-    currentPrice += change;
-    
-    // Candlestick mock data
-    const open = currentPrice - (Math.random() * volatility * 0.5);
-    const close = currentPrice + (Math.random() * volatility * 0.5);
+    const open = price + (Math.random() - 0.5) * volatility;
+    const close = price;
     const high = Math.max(open, close) + (Math.random() * volatility * 0.2);
     const low = Math.min(open, close) - (Math.random() * volatility * 0.2);
 
-    data.push({
-      time: date.toISOString().split('T')[0],
-      value: Number(currentPrice.toFixed(2)),
+    // Format time based on timeframe
+    let timeStr;
+    if (timeframe === '1D') {
+      timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      date.setHours(date.getHours() - 1);
+    } else {
+      timeStr = date.toISOString().split('T')[0];
+      if (timeframe === '1W' || timeframe === '1M') {
+        date.setDate(date.getDate() - 1);
+      } else if (timeframe === '1Y') {
+        date.setMonth(date.getMonth() - 1);
+      }
+    }
+
+    data.unshift({
+      time: timeStr,
+      value: Number(close.toFixed(2)),
       open: Number(open.toFixed(2)),
       high: Number(high.toFixed(2)),
       low: Number(low.toFixed(2)),
       close: Number(close.toFixed(2))
     });
-    date.setDate(date.getDate() + 1);
+
+    price = open; // The previous period's close is roughly this period's open
   }
   return data;
 };
 
 export const CHART_DATA = {
-  '1D': generateChartData(24, 64000, 200), // Hourly for 1 day
-  '1W': generateChartData(7, 63000, 1000), // Daily for 1 week
-  '1M': generateChartData(30, 58000, 1500), // Daily for 1 month
-  '1Y': generateChartData(12, 40000, 5000), // Monthly for 1 year
+  '1D': generateChartData(24, '1D', 64230.50, 200),
+  '1W': generateChartData(7, '1W', 64230.50, 1000),
+  '1M': generateChartData(30, '1M', 64230.50, 1500),
+  '1Y': generateChartData(12, '1Y', 64230.50, 5000),
 };
 
 export const RECENT_TRANSACTIONS = [
