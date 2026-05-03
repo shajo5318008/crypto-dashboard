@@ -37,14 +37,23 @@ const PortfolioSummary = ({ portfolio }) => (
   </div>
 );
 
-const AssetsList = ({ assets }) => (
+const AssetsList = ({ assets, selectedAsset, onSelectAsset }) => (
   <div className="glass p-6 rounded-2xl col-span-1 md:col-span-2">
     <h3 className="text-lg font-bold mb-4">Your Assets</h3>
     <div className="space-y-2">
       {assets.map((asset, i) => {
         const colors = ['from-amber-500 to-yellow-400','from-blue-500 to-indigo-400','from-purple-500 to-violet-400','from-teal-500 to-emerald-400','from-pink-500 to-rose-400'];
+        const isSelected = selectedAsset?.id === asset.id;
         return (
-          <div key={asset.id} className="flex items-center justify-between p-3 rounded-xl bg-black/20 hover:bg-black/40 transition-all duration-200 cursor-pointer group">
+          <div 
+            key={asset.id} 
+            onClick={() => onSelectAsset(asset)}
+            className={`flex items-center justify-between p-3 rounded-xl transition-all duration-200 cursor-pointer group ${
+              isSelected 
+                ? 'bg-white/10 border border-primary/50' 
+                : 'bg-black/20 hover:bg-black/40 border border-transparent'
+            }`}
+          >
             <div className="flex items-center space-x-3">
               <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${colors[i % colors.length]} flex items-center justify-center font-bold text-white text-sm`}>
                 {asset.symbol[0]}
@@ -148,6 +157,9 @@ function App() {
   const [activePage, setActivePage] = useState('dashboard');
   const [user, setUser]             = useState(null);
   const { assets, portfolio }       = useSimulatedData();
+  const [selectedAssetId, setSelectedAssetId] = useState('bitcoin');
+
+  const selectedAsset = assets.find(a => a.id === selectedAssetId) || assets[0];
 
   // ── Restore all persisted state on mount ─────────────────────────────────
   useEffect(() => {
@@ -208,12 +220,16 @@ function App() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <PortfolioSummary portfolio={portfolio} />
               <div className="lg:col-span-2">
-                <MainChart />
+                <MainChart selectedAsset={selectedAsset} />
               </div>
             </div>
             {/* Bottom row */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <AssetsList assets={assets} />
+              <AssetsList 
+                assets={assets} 
+                selectedAsset={selectedAsset} 
+                onSelectAsset={(asset) => setSelectedAssetId(asset.id)} 
+              />
               <div className="space-y-6">
                 <RecentTransactions transactions={RECENT_TRANSACTIONS} />
                 <NewsHighlights news={NEWS_HIGHLIGHTS} />
