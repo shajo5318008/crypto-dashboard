@@ -60,12 +60,19 @@ const generateChartData = (points, timeframe, currentPrice, volatility) => {
   return data;
 };
 
-export const CHART_DATA = {
-  '1D': generateChartData(24, '1D', 64230.50, 200),
-  '1W': generateChartData(7, '1W', 64230.50, 1000),
-  '1M': generateChartData(30, '1M', 64230.50, 1500),
-  '1Y': generateChartData(12, '1Y', 64230.50, 5000),
-};
+export const CHART_DATA = INITIAL_ASSETS.reduce((acc, asset) => {
+  const price = asset.price;
+  // Adjust volatility based on price to make charts look realistic
+  const vol = price * 0.02; // 2% volatility
+
+  acc[asset.id] = {
+    '1D': generateChartData(24, '1D', price, vol * 0.5),
+    '1W': generateChartData(7, '1W', price, vol * 2),
+    '1M': generateChartData(30, '1M', price, vol * 4),
+    '1Y': generateChartData(12, '1Y', price, vol * 10),
+  };
+  return acc;
+}, {});
 
 export const RECENT_TRANSACTIONS = [
   { id: 1, type: 'Buy', asset: 'BTC', amount: 0.05, price: 64100, date: '2024-05-02T14:30:00Z', status: 'Completed' },

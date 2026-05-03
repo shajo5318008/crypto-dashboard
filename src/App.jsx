@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Sidebar from './components/layout/Sidebar';
 import Topbar from './components/layout/Topbar';
 import { useSimulatedData } from './hooks/useSimulatedData';
@@ -6,7 +6,7 @@ import MainChart from './components/dashboard/MainChart';
 
 // Placeholder components - Devs will replace these
 const PortfolioSummary = ({ portfolio }) => (
-  <div className="glass p-6 rounded-2xl">
+  <div className="glass p-6 rounded-2xl h-full">
     <h2 className="text-muted text-sm font-medium mb-1">Total Balance</h2>
     <div className="text-3xl font-bold text-text">${portfolio.totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
     <div className={`text-sm mt-2 flex items-center ${portfolio.profit24h >= 0 ? 'text-success' : 'text-danger'}`}>
@@ -15,12 +15,20 @@ const PortfolioSummary = ({ portfolio }) => (
   </div>
 );
 
-const AssetsList = ({ assets }) => (
+const AssetsList = ({ assets, selectedAsset, onSelectAsset }) => (
   <div className="glass p-6 rounded-2xl col-span-1 md:col-span-2">
     <h3 className="text-lg font-bold mb-4">Your Assets</h3>
     <div className="space-y-4">
       {assets.map(asset => (
-        <div key={asset.id} className="flex items-center justify-between p-4 rounded-xl bg-black/20 hover:bg-black/40 transition-colors">
+        <div 
+          key={asset.id} 
+          onClick={() => onSelectAsset(asset)}
+          className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-colors border ${
+            selectedAsset.id === asset.id 
+              ? 'bg-white/10 border-primary/50' 
+              : 'bg-black/20 border-transparent hover:bg-black/40'
+          }`}
+        >
           <div className="flex items-center space-x-4">
             <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary">
               {asset.symbol[0]}
@@ -44,6 +52,9 @@ const AssetsList = ({ assets }) => (
 
 function App() {
   const { assets, portfolio } = useSimulatedData();
+  const [selectedAssetId, setSelectedAssetId] = useState('bitcoin');
+
+  const selectedAsset = assets.find(a => a.id === selectedAssetId) || assets[0];
 
   return (
     <div className="flex h-screen bg-background overflow-hidden selection:bg-primary/30">
@@ -54,18 +65,22 @@ function App() {
         <main className="flex-1 overflow-y-auto p-8">
           <div className="max-w-7xl mx-auto space-y-6">
             
-            {/* Top Grid: Portfolio & Main Chart Placeholder */}
+            {/* Top Grid: Portfolio & Main Chart */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <PortfolioSummary portfolio={portfolio} />
               
               <div className="lg:col-span-2">
-                <MainChart />
+                <MainChart selectedAsset={selectedAsset} />
               </div>
             </div>
 
             {/* Bottom Grid: Assets & Side Panels */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <AssetsList assets={assets} />
+              <AssetsList 
+                assets={assets} 
+                selectedAsset={selectedAsset} 
+                onSelectAsset={(asset) => setSelectedAssetId(asset.id)} 
+              />
               
               <div className="space-y-6">
                 <div className="glass p-6 rounded-2xl min-h-[200px] flex items-center justify-center">

@@ -3,9 +3,9 @@ import { AreaChart, Area, LineChart, Line, BarChart, Bar, XAxis, YAxis, Cartesia
 import anychart from 'anychart';
 import { CHART_DATA } from '../../data/mockData';
 
-// Separate component for AnyChart to prevent React render cycle crashes
 const AnyChartCandlestick = ({ data }) => {
   const chartContainer = useRef(null);
+  const chartRef = useRef(null);
 
   useEffect(() => {
     if (!chartContainer.current) return;
@@ -13,44 +13,101 @@ const AnyChartCandlestick = ({ data }) => {
     // Transform data for AnyChart Candlestick
     const candleData = data.map(item => [item.time, item.open, item.high, item.low, item.close]);
     
-    // Create chart instance
-    const chart = anychart.candlestick();
-    chart.data(candleData);
-    
-    // Dark mode styling
-    chart.background().fill("transparent");
-    chart.xAxis().labels().fontColor("#94A3B8");
-    chart.yAxis().labels().fontColor("#94A3B8");
-    chart.xAxis().stroke("rgba(255,255,255,0.1)");
-    chart.yAxis().stroke("rgba(255,255,255,0.1)");
-    
-    // Candle colors
-    const series = chart.getSeries(0);
-    series.fallingFill("#EF4444", 1);
-    series.fallingStroke("#EF4444", 1);
-    series.risingFill("#10B981", 1);
-    series.risingStroke("#10B981", 1);
+    if (!chartRef.current) {
+      // Create chart instance only once
+      const chart = anychart.candlestick();
+      chartRef.current = chart;
+      
+      chart.background().fill("transparent");
+      chart.xAxis().labels().fontColor("#94A3B8");
+      chart.yAxis().labels().fontColor("#94A3B8");
+      chart.xAxis().stroke("rgba(255,255,255,0.1)");
+      chart.yAxis().stroke("rgba(255,255,255,0.1)");
+      
+      const series = chart.getSeries(0);
+      series.fallingFill("#EF4444", 1);
+      series.fallingStroke("#EF4444", 1);
+      series.risingFill("#10B981", 1);
+      series.risingStroke("#10B981", 1);
 
-    // Render to ref
-    chart.container(chartContainer.current);
-    chart.draw();
+      chart.container(chartContainer.current);
+      chart.draw();
+    }
+    
+    // Update data without destroying chart
+    chartRef.current.data(candleData);
 
-    // Cleanup on unmount or data change
     return () => {
-      chart.dispose();
+      // We don't dispose on every data change, only on unmount
     };
   }, [data]);
+
+  // Clean up exactly once on unmount
+  useEffect(() => {
+    return () => {
+      if (chartRef.current) {
+        chartRef.current.dispose();
+      }
+    };
+  }, []);
 
   return <div ref={chartContainer} style={{ width: '100%', height: '100%', minHeight: '350px' }} />;
 };
 
-const MainChart = () => {
+const MainChart = ({ selectedAsset }) => {
   const [timeframe, setTimeframe] = useState('1M');
   const [chartType, setChartType] = useState('Area');
   
-  const data = CHART_DATA[timeframe];
+  // Local state to hold the live-animating data
+  const [data, setData] = useState([]);
+
   const timeframes = ['1D', '1W', '1M', '1Y'];
   const chartTypes = ['Area', 'Line', 'Bar', 'Candle'];
+
+  // 1. Reset data when timeframe or selected asset changes
+  useEffect(() => {
+    if (selectedAsset && CHART_DATA[selectedAsset.id]) {
+      setData([...CHART_DATA[selectedAsset.id][timeframe]]);
+    }
+  }, [selectedAsset?.id, timeframe]);
+
+  // 2. Listen to live price changes on the selected asset and animate!
+  useEffect(() => {
+    if (!selectedAsset) return;
+
+    setData(prevData => {
+      if (prevData.length === 0) return prevData;
+
+      // We only append if the price actually changed to avoid unnecessary renders
+      const currentPrice = selectedAsset.price;
+      const lastPoint = prevData[prevData.length - 1];
+      
+      if (lastPoint.value === currentPrice) return prevData;
+
+      const newData = [...prevData];
+      
+      // Create a new "live" data point
+      const now = new Date();
+      const timeStr = timeframe === '1D' 
+        ? now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        : now.toISOString().split('T')[0];
+
+      // Shift data (remove oldest, add newest)
+      newData.shift();
+      newData.push({
+        time: timeStr,
+        value: currentPrice,
+        open: lastPoint.close,
+        high: Math.max(lastPoint.close, currentPrice) + (currentPrice * 0.001),
+        low: Math.min(lastPoint.close, currentPrice) - (currentPrice * 0.001),
+        close: currentPrice
+      });
+
+      return newData;
+    });
+  }, [selectedAsset?.price, timeframe]);
+
+  if (!selectedAsset) return null;
 
   // Trend detection for Recharts colors
   const isTrendUp = data.length > 0 && data[data.length - 1].value >= data[0].value;
@@ -68,12 +125,11 @@ const MainChart = () => {
     <div className="glass p-6 rounded-2xl w-full h-full flex flex-col">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
         <div>
-          <h3 className="text-xl font-bold">Bitcoin (BTC)</h3>
-          <p className="text-muted text-sm">Price Chart</p>
+          <h3 className="text-xl font-bold">{selectedAsset.name} ({selectedAsset.symbol})</h3>
+          <p className="text-muted text-sm">Live Price Chart</p>
         </div>
         
         <div className="flex flex-wrap items-center gap-4">
-          {/* Chart Type Toggle */}
           <div className="flex space-x-1 bg-black/20 p-1 rounded-lg">
             {chartTypes.map((type) => (
               <button
@@ -90,7 +146,6 @@ const MainChart = () => {
             ))}
           </div>
 
-          {/* Timeframe Filters */}
           <div className="flex space-x-1 bg-black/20 p-1 rounded-lg">
             {timeframes.map((tf) => (
               <button
@@ -120,7 +175,7 @@ const MainChart = () => {
                 </linearGradient>
               </defs>
               {RechartsGrid}{RechartsXAxis}{RechartsYAxis}{RechartsTooltip}
-              <Area type="monotone" dataKey="value" stroke={strokeColor} strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" animationDuration={1000} />
+              <Area type="monotone" dataKey="value" stroke={strokeColor} strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" animationDuration={300} />
             </AreaChart>
           </ResponsiveContainer>
         )}
@@ -129,7 +184,7 @@ const MainChart = () => {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={rechartsMargin}>
               {RechartsGrid}{RechartsXAxis}{RechartsYAxis}{RechartsTooltip}
-              <Line type="monotone" dataKey="value" stroke={strokeColor} strokeWidth={3} dot={false} animationDuration={1000} />
+              <Line type="monotone" dataKey="value" stroke={strokeColor} strokeWidth={3} dot={false} animationDuration={300} />
             </LineChart>
           </ResponsiveContainer>
         )}
@@ -138,7 +193,7 @@ const MainChart = () => {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={rechartsMargin}>
               {RechartsGrid}{RechartsXAxis}{RechartsYAxis}{RechartsTooltip}
-              <Bar dataKey="value" fill={strokeColor} radius={[4, 4, 0, 0]} animationDuration={1000} />
+              <Bar dataKey="value" fill={strokeColor} radius={[4, 4, 0, 0]} animationDuration={300} />
             </BarChart>
           </ResponsiveContainer>
         )}
