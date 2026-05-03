@@ -132,9 +132,30 @@ const MainChart = ({ selectedAsset }) => {
     );
   };
 
+  // Smart X-Axis Formatter to prevent clutter
+  const formatXAxis = (tickItem) => {
+    // 1D is already "HH:mm"
+    if (timeframe === '1D') return tickItem;
+    
+    // Parse the "YYYY-MM-DD" string
+    const date = new Date(tickItem);
+    if (isNaN(date.getTime())) return tickItem;
+
+    if (timeframe === '1W') {
+      return date.toLocaleDateString(undefined, { weekday: 'short' }); // "Mon"
+    }
+    if (timeframe === '1M') {
+      return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); // "May 10"
+    }
+    if (timeframe === '1Y') {
+      return date.toLocaleDateString(undefined, { month: 'short', year: '2-digit' }); // "Jan '25"
+    }
+    return tickItem;
+  };
+
   // Common Recharts props
   const rechartsMargin = { top: 10, right: 0, left: 0, bottom: 0 };
-  const RechartsXAxis = <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 12 }} dy={10} />;
+  const RechartsXAxis = <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 12 }} tickFormatter={formatXAxis} dy={10} />;
   const RechartsYAxis = <YAxis domain={['auto', 'auto']} axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 12 }} tickFormatter={(value) => `$${value.toLocaleString()}`} dx={-10} />;
   const RechartsTooltip = <Tooltip contentStyle={{ backgroundColor: '#1E293B', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }} itemStyle={{ color: '#F8FAFC' }} labelStyle={{ color: '#94A3B8', marginBottom: '4px' }} />;
   const RechartsGrid = <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />;
