@@ -10,8 +10,8 @@ const AnyChartCandlestick = ({ data }) => {
   useEffect(() => {
     if (!chartContainer.current) return;
     
-    // Transform data for AnyChart Candlestick
-    const candleData = data.map(item => [item.time, item.open, item.high, item.low, item.close]);
+    // Transform data for AnyChart Candlestick (Use raw timestamp for reliable parsing)
+    const candleData = data.map(item => [item.timestamp || item.time, item.open, item.high, item.low, item.close]);
     
     if (!chartRef.current) {
       // Create chart instance only once

@@ -48,6 +48,7 @@ const generateChartData = (points, timeframe, currentPrice, volatility) => {
 
     data.unshift({
       time: timeStr,
+      timestamp: date.getTime(),
       value: Number(close.toFixed(2)),
       open: Number(open.toFixed(2)),
       high: Number(high.toFixed(2)),
