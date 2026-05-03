@@ -1,8 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AreaChart, Area, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import AnyChart from 'anychart-react';
 import anychart from 'anychart';
 import { CHART_DATA } from '../../data/mockData';
+
+// Separate component for AnyChart to prevent React render cycle crashes
+const AnyChartCandlestick = ({ data }) => {
+  const chartContainer = useRef(null);
+
+  useEffect(() => {
+    if (!chartContainer.current) return;
+    
+    // Transform data for AnyChart Candlestick
+    const candleData = data.map(item => [item.time, item.open, item.high, item.low, item.close]);
+    
+    // Create chart instance
+    const chart = anychart.candlestick();
+    chart.data(candleData);
+    
+    // Dark mode styling
+    chart.background().fill("transparent");
+    chart.xAxis().labels().fontColor("#94A3B8");
+    chart.yAxis().labels().fontColor("#94A3B8");
+    chart.xAxis().stroke("rgba(255,255,255,0.1)");
+    chart.yAxis().stroke("rgba(255,255,255,0.1)");
+    
+    // Candle colors
+    const series = chart.getSeries(0);
+    series.fallingFill("#EF4444", 1);
+    series.fallingStroke("#EF4444", 1);
+    series.risingFill("#10B981", 1);
+    series.risingStroke("#10B981", 1);
+
+    // Render to ref
+    chart.container(chartContainer.current);
+    chart.draw();
+
+    // Cleanup on unmount or data change
+    return () => {
+      chart.dispose();
+    };
+  }, [data]);
+
+  return <div ref={chartContainer} style={{ width: '100%', height: '100%', minHeight: '350px' }} />;
+};
 
 const MainChart = () => {
   const [timeframe, setTimeframe] = useState('1M');
@@ -16,28 +56,6 @@ const MainChart = () => {
   const isTrendUp = data.length > 0 && data[data.length - 1].value >= data[0].value;
   const strokeColor = isTrendUp ? '#10B981' : '#EF4444'; 
   const fillColor = isTrendUp ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)';
-
-  // AnyChart configuration for Candlestick
-  let anyChartInstance = null;
-  if (chartType === 'Candle') {
-    const candleData = data.map(item => [item.time, item.open, item.high, item.low, item.close]);
-    anyChartInstance = anychart.candlestick();
-    anyChartInstance.data(candleData);
-    
-    // Dark mode styling
-    anyChartInstance.background().fill("transparent");
-    anyChartInstance.xAxis().labels().fontColor("#94A3B8");
-    anyChartInstance.yAxis().labels().fontColor("#94A3B8");
-    anyChartInstance.xAxis().stroke("rgba(255,255,255,0.1)");
-    anyChartInstance.yAxis().stroke("rgba(255,255,255,0.1)");
-    
-    // Candle colors
-    const series = anyChartInstance.getSeries(0);
-    series.fallingFill("#EF4444", 1);
-    series.fallingStroke("#EF4444", 1);
-    series.risingFill("#10B981", 1);
-    series.risingStroke("#10B981", 1);
-  }
 
   // Common Recharts props
   const rechartsMargin = { top: 10, right: 0, left: 0, bottom: 0 };
@@ -125,10 +143,8 @@ const MainChart = () => {
           </ResponsiveContainer>
         )}
 
-        {chartType === 'Candle' && anyChartInstance && (
-          <div className="w-full h-full" style={{ minHeight: '350px' }}>
-            <AnyChart instance={anyChartInstance} width="100%" height="100%" />
-          </div>
+        {chartType === 'Candle' && (
+          <AnyChartCandlestick data={data} />
         )}
       </div>
     </div>
