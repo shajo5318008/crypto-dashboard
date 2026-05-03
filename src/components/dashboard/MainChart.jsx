@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { AreaChart, Area, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import anychart from 'anychart';
 import { CHART_DATA } from '../../data/mockData';
+import toast from 'react-hot-toast';
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 const AnyChartCandlestick = ({ data }) => {
   const chartContainer = useRef(null);
@@ -110,6 +112,26 @@ const MainChart = ({ selectedAsset }) => {
   const strokeColor = isTrendUp ? '#10B981' : '#EF4444'; 
   const fillColor = isTrendUp ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)';
 
+  // Trend Indicator Logic
+  const change = selectedAsset.change24h;
+  let sentiment = { text: 'Neutral', color: 'text-muted', bg: 'bg-white/5', icon: <Minus size={14} /> };
+  
+  if (change > 2) sentiment = { text: 'Strong Bullish', color: 'text-success', bg: 'bg-success/10 border border-success/30 shadow-[0_0_10px_rgba(16,185,129,0.3)]', icon: <TrendingUp size={14} /> };
+  else if (change > 0) sentiment = { text: 'Bullish', color: 'text-success', bg: 'bg-success/10', icon: <TrendingUp size={14} /> };
+  else if (change < -2) sentiment = { text: 'Strong Bearish', color: 'text-danger', bg: 'bg-danger/10 border border-danger/30 shadow-[0_0_10px_rgba(239,68,68,0.3)]', icon: <TrendingDown size={14} /> };
+  else if (change < 0) sentiment = { text: 'Bearish', color: 'text-danger', bg: 'bg-danger/10', icon: <TrendingDown size={14} /> };
+
+  // Transaction Handlers
+  const handleTrade = (type) => {
+    toast.success(
+      <div className="flex flex-col">
+        <span className="font-bold">Successfully {type === 'Buy' ? 'Bought' : 'Sold'} {selectedAsset.symbol}</span>
+        <span className="text-sm text-muted">Execution Price: ${selectedAsset.price.toLocaleString()}</span>
+      </div>, 
+      { duration: 4000 }
+    );
+  };
+
   // Common Recharts props
   const rechartsMargin = { top: 10, right: 0, left: 0, bottom: 0 };
   const RechartsXAxis = <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 12 }} dy={10} />;
@@ -120,12 +142,42 @@ const MainChart = ({ selectedAsset }) => {
   return (
     <div className="glass p-6 rounded-2xl w-full h-full flex flex-col">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-        <div>
-          <h3 className="text-xl font-bold">{selectedAsset.name} ({selectedAsset.symbol})</h3>
-          <p className="text-muted text-sm">Live Price Chart</p>
+        
+        {/* Left Side: Title & Trend Indicator */}
+        <div className="flex items-center gap-4">
+          <div>
+            <h3 className="text-xl font-bold">{selectedAsset.name} ({selectedAsset.symbol})</h3>
+            <p className="text-muted text-sm flex items-center gap-2">
+              Live Price Chart 
+              <span className="text-xs px-2 py-0.5 rounded-full bg-white/10">{timeframe}</span>
+            </p>
+          </div>
+          
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-500 ${sentiment.bg} ${sentiment.color}`}>
+            {sentiment.icon}
+            {sentiment.text}
+          </div>
         </div>
         
+        {/* Right Side: Toggles & Buy/Sell Buttons */}
         <div className="flex flex-wrap items-center gap-4">
+          
+          {/* Action Buttons */}
+          <div className="flex space-x-2 mr-2">
+            <button 
+              onClick={() => handleTrade('Buy')}
+              className="px-4 py-1.5 bg-success/20 hover:bg-success text-success hover:text-white font-bold rounded-lg transition-colors border border-success/30"
+            >
+              Buy
+            </button>
+            <button 
+              onClick={() => handleTrade('Sell')}
+              className="px-4 py-1.5 bg-danger/20 hover:bg-danger text-danger hover:text-white font-bold rounded-lg transition-colors border border-danger/30"
+            >
+              Sell
+            </button>
+          </div>
+
           <div className="flex space-x-1 bg-black/20 p-1 rounded-lg">
             {chartTypes.map((type) => (
               <button

@@ -151,7 +151,7 @@ const PAGE_TITLES = {
   settings:     'Settings',
 };
 
-// ─── App ──────────────────────────────────────────────────────────────────────
+import { Toaster } from 'react-hot-toast';
 
 function App() {
   const [activePage, setActivePage] = useState('dashboard');
@@ -242,6 +242,17 @@ function App() {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden selection:bg-primary/30">
+      <Toaster 
+        position="top-right" 
+        toastOptions={{
+          style: {
+            background: '#1E293B',
+            color: '#fff',
+            border: '1px solid rgba(255,255,255,0.1)',
+          },
+        }} 
+      />
+      
       {/* Sidebar */}
       <Sidebar activePage={activePage} setActivePage={setActivePage} />
 
