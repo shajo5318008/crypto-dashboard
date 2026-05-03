@@ -23,12 +23,6 @@ const AnyChartCandlestick = ({ data }) => {
       chart.yAxis().labels().fontColor("#94A3B8");
       chart.xAxis().stroke("rgba(255,255,255,0.1)");
       chart.yAxis().stroke("rgba(255,255,255,0.1)");
-      
-      const series = chart.getSeries(0);
-      series.fallingFill("#EF4444", 1);
-      series.fallingStroke("#EF4444", 1);
-      series.risingFill("#10B981", 1);
-      series.risingStroke("#10B981", 1);
 
       chart.container(chartContainer.current);
       chart.draw();
@@ -36,6 +30,15 @@ const AnyChartCandlestick = ({ data }) => {
     
     // Update data without destroying chart
     chartRef.current.data(candleData);
+
+    // Apply styling AFTER data is set so series exists
+    const series = chartRef.current.getSeries(0);
+    if (series) {
+      series.fallingFill("#EF4444", 1);
+      series.fallingStroke("#EF4444", 1);
+      series.risingFill("#10B981", 1);
+      series.risingStroke("#10B981", 1);
+    }
 
   }, [data]);
 
