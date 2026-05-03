@@ -2,6 +2,7 @@ import React from 'react';
 import Sidebar from './components/layout/Sidebar';
 import Topbar from './components/layout/Topbar';
 import { useSimulatedData } from './hooks/useSimulatedData';
+import MainChart from './components/dashboard/MainChart';
 
 // Placeholder components - Devs will replace these
 const PortfolioSummary = ({ portfolio }) => (
@@ -57,11 +58,8 @@ function App() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <PortfolioSummary portfolio={portfolio} />
               
-              <div className="glass p-6 rounded-2xl lg:col-span-2 flex items-center justify-center min-h-[300px]">
-                <div className="text-center">
-                  <h3 className="text-xl font-bold mb-2">Main Chart Area</h3>
-                  <p className="text-muted">Dev A: Integrate Recharts here using CHART_DATA</p>
-                </div>
+              <div className="lg:col-span-2">
+                <MainChart />
               </div>
             </div>
 
